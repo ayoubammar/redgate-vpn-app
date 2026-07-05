@@ -15,8 +15,17 @@ jobs:
 
       - name: Fix submodule URLs and checkout
         run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          # Replace ssh urls in the main .gitmodules
+          if [ -f .gitmodules ]; then
+            sed -i 's/git@github.com:/https:\/\/github.com\//g' .gitmodules
+            sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' .gitmodules
+          fi
+          git submodule sync
+          git submodule update --init
+          
+          # Replace ssh urls in all nested .gitmodules
+          find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
+          find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
           git submodule sync --recursive
           git submodule update --init --recursive
 
@@ -68,8 +77,17 @@ jobs:
 
       - name: Fix submodule URLs and checkout
         run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          # Replace ssh urls in the main .gitmodules
+          if [ -f .gitmodules ]; then
+            sed -i 's/git@github.com:/https:\/\/github.com\//g' .gitmodules
+            sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' .gitmodules
+          fi
+          git submodule sync
+          git submodule update --init
+          
+          # Replace ssh urls in all nested .gitmodules
+          find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
+          find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
           git submodule sync --recursive
           git submodule update --init --recursive
 

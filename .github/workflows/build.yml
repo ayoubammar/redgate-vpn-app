@@ -3,9 +3,6 @@ name: Build RedGate VPN
 on:
   workflow_dispatch:
 
-env:
-  CHANNEL: prod
-
 jobs:
   build-android:
     runs-on: ubuntu-latest
@@ -15,7 +12,6 @@ jobs:
 
       - name: Manual Submodule Resolver
         run: |
-          # Bash function to recursively update submodules while patching .gitmodules
           update_submods() {
             if [ -f .gitmodules ]; then
               echo "Patching .gitmodules in $(pwd)"
@@ -24,7 +20,6 @@ jobs:
               git submodule sync
               git submodule update --init
               
-              # Read paths and recurse
               git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read modpath; do
                 if [ -d "$modpath" ]; then
                   (cd "$modpath" && update_submods)
@@ -53,19 +48,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          make get
-          make gen || true
-          make android-apk-install-deps || true
+          make get CHANNEL=prod
+          make gen CHANNEL=prod || true
+          make android-apk-install-deps CHANNEL=prod || true
 
       - name: Download pre-built core libs
         run: make android-libs CHANNEL=prod
 
       - name: Download geo assets
-        run: make get-geo-assets || true
+        run: make get-geo-assets CHANNEL=prod || true
 
       - name: Build APK
         run: |
-          make android-apk-release CHANNEL=prod || flutter build apk --release --target lib/main.dart
+          make android-apk-release CHANNEL=prod || flutter build apk --release --target lib/main_prod.dart
 
       - name: Find and upload APK
         uses: actions/upload-artifact@v4
@@ -113,19 +108,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          make get
-          make gen || true
-          make windows-install-deps || true
+          make get CHANNEL=prod
+          make gen CHANNEL=prod || true
+          make windows-install-deps CHANNEL=prod || true
 
       - name: Download pre-built core libs
         run: make windows-libs CHANNEL=prod
 
       - name: Download geo assets
-        run: make get-geo-assets || true
+        run: make get-geo-assets CHANNEL=prod || true
 
       - name: Build Windows
         run: |
-          make windows-release CHANNEL=prod || flutter build windows --release --target lib/main.dart
+          make windows-release CHANNEL=prod || flutter build windows --release --target lib/main_prod.dart
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4

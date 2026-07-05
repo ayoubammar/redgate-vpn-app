@@ -1,4 +1,4 @@
-name: hiddify
+name: redgate_vpn
 description: Cross Platform Multi Protocol Proxy Frontend.
 publish_to: "none"
 version: 4.1.2+40102
@@ -182,8 +182,8 @@ flutter_native_splash:
     image: assets/images/source/ic_launcher_foreground.png
 
 ffigen:
-  name: "HiddifyCoreNativeLibrary"
-  description: "Bindings to Hiddify Core Library"
+  name: "RedGate VPNCoreNativeLibrary"
+  description: "Bindings to RedGate VPN Core Library"
   output: "lib/gen/hiddify_core_generated_bindings.dart"
   headers:
     entry-points:

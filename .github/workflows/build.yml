@@ -13,22 +13,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Force HTTPS for all submodules
+      - name: Fix all nested submodules iteratively
         run: |
-          # Configure git to use HTTPS instead of SSH globally
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-          # Ensure git uses this config
-          export GIT_CONFIG_GLOBAL=$HOME/.gitconfig
+          for i in {1..5}; do
+            echo "Iteration $i for fixing submodules..."
+            # Replace SSH with HTTPS in any .gitmodules found
+            find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
+            find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
+            
+            # Sync the new URLs
+            git submodule sync
+            
+            # Init the immediate submodules ONLY (no --recursive)
+            git submodule update --init
+          done
           
-          # Iterate submodule update to catch nested modules just in case
-          git submodule sync
-          git submodule update --init
-          
-          # Recursively rewrite any .gitmodules found and sync
-          find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
-          find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
-          
+          # Final sync and full recursive update to be sure
           git submodule sync --recursive
           git submodule update --init --recursive
 
@@ -78,18 +78,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Force HTTPS for all submodules
+      - name: Fix all nested submodules iteratively
         run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-          export GIT_CONFIG_GLOBAL=$HOME/.gitconfig
-          
-          git submodule sync
-          git submodule update --init
-          
-          find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
-          find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
-          
+          for i in {1..5}; do
+            echo "Iteration $i for fixing submodules..."
+            find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
+            find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
+            git submodule sync
+            git submodule update --init
+          done
           git submodule sync --recursive
           git submodule update --init --recursive
 

@@ -13,24 +13,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fix all nested submodules iteratively
+      - name: Manual Submodule Resolver
         run: |
-          for i in {1..5}; do
-            echo "Iteration $i for fixing submodules..."
-            # Replace SSH with HTTPS in any .gitmodules found
-            find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
-            find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
-            
-            # Sync the new URLs
-            git submodule sync
-            
-            # Init the immediate submodules ONLY (no --recursive)
-            git submodule update --init
-          done
-          
-          # Final sync and full recursive update to be sure
-          git submodule sync --recursive
-          git submodule update --init --recursive
+          # Bash function to recursively update submodules while patching .gitmodules
+          update_submods() {
+            if [ -f .gitmodules ]; then
+              echo "Patching .gitmodules in $(pwd)"
+              sed -i 's/git@github.com:/https:\/\/github.com\//g' .gitmodules
+              sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' .gitmodules
+              git submodule sync
+              git submodule update --init
+              
+              # Read paths and recurse
+              git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read modpath; do
+                if [ -d "$modpath" ]; then
+                  (cd "$modpath" && update_submods)
+                fi
+              done
+            fi
+          }
+          export -f update_submods
+          update_submods
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -78,17 +81,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fix all nested submodules iteratively
+      - name: Manual Submodule Resolver
         run: |
-          for i in {1..5}; do
-            echo "Iteration $i for fixing submodules..."
-            find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
-            find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
-            git submodule sync
-            git submodule update --init
-          done
-          git submodule sync --recursive
-          git submodule update --init --recursive
+          update_submods() {
+            if [ -f .gitmodules ]; then
+              echo "Patching .gitmodules in $(pwd)"
+              sed -i 's/git@github.com:/https:\/\/github.com\//g' .gitmodules
+              sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' .gitmodules
+              git submodule sync
+              git submodule update --init
+              
+              git config --file .gitmodules --get-regexp path | awk '{ print $2 }' | while read modpath; do
+                if [ -d "$modpath" ]; then
+                  (cd "$modpath" && update_submods)
+                fi
+              done
+            fi
+          }
+          export -f update_submods
+          update_submods
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

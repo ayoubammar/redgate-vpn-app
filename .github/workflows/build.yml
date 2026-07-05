@@ -3,89 +3,106 @@ name: Build RedGate VPN
 on:
   workflow_dispatch:
 
+env:
+  CHANNEL: prod
+
 jobs:
   build-android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Fix submodule URLs
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fix submodule URLs and checkout
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           git submodule sync --recursive
           git submodule update --init --recursive
-      
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
           channel: 'stable'
-      
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      
-      - name: Get dependencies
+
+      - name: Install dependencies
         run: |
-          flutter pub get
-          make android-libs || true
-      
+          make get
+          make gen || true
+          make android-apk-install-deps || true
+
+      - name: Download pre-built core libs
+        run: make android-libs CHANNEL=prod
+
+      - name: Download geo assets
+        run: make get-geo-assets || true
+
       - name: Build APK
-        run: flutter build apk --release
-      
-      - name: Upload APK
+        run: |
+          make android-apk-release CHANNEL=prod || flutter build apk --release --target lib/main.dart
+
+      - name: Find and upload APK
         uses: actions/upload-artifact@v4
         with:
           name: RedGate-VPN-Android
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/app/outputs/apk/**/*.apk
 
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Fix submodule URLs
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fix submodule URLs and checkout
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
           git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
           git submodule sync --recursive
           git submodule update --init --recursive
-      
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
           channel: 'stable'
-      
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      
-      - name: Get dependencies
+
+      - name: Install dependencies
         run: |
-          flutter pub get
-          make windows-libs || true
-      
+          make get
+          make gen || true
+          make windows-install-deps || true
+
+      - name: Download pre-built core libs
+        run: make windows-libs CHANNEL=prod
+
+      - name: Download geo assets
+        run: make get-geo-assets || true
+
       - name: Build Windows
-        run: flutter build windows --release
-      
+        run: |
+          make windows-release CHANNEL=prod || flutter build windows --release --target lib/main.dart
+
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
           name: RedGate-VPN-Windows
-          path: build/windows/x64/runner/Release/
+          path: |
+            build/windows/x64/runner/Release/
+            dist/

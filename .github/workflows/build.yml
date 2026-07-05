@@ -13,19 +13,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fix submodule URLs and checkout
+      - name: Force HTTPS for all submodules
         run: |
-          # Replace ssh urls in the main .gitmodules
-          if [ -f .gitmodules ]; then
-            sed -i 's/git@github.com:/https:\/\/github.com\//g' .gitmodules
-            sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' .gitmodules
-          fi
+          # Configure git to use HTTPS instead of SSH globally
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          # Ensure git uses this config
+          export GIT_CONFIG_GLOBAL=$HOME/.gitconfig
+          
+          # Iterate submodule update to catch nested modules just in case
           git submodule sync
           git submodule update --init
           
-          # Replace ssh urls in all nested .gitmodules
+          # Recursively rewrite any .gitmodules found and sync
           find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
           find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
+          
           git submodule sync --recursive
           git submodule update --init --recursive
 
@@ -75,19 +78,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fix submodule URLs and checkout
+      - name: Force HTTPS for all submodules
         run: |
-          # Replace ssh urls in the main .gitmodules
-          if [ -f .gitmodules ]; then
-            sed -i 's/git@github.com:/https:\/\/github.com\//g' .gitmodules
-            sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' .gitmodules
-          fi
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          export GIT_CONFIG_GLOBAL=$HOME/.gitconfig
+          
           git submodule sync
           git submodule update --init
           
-          # Replace ssh urls in all nested .gitmodules
           find . -name .gitmodules -exec sed -i 's/git@github.com:/https:\/\/github.com\//g' {} +
           find . -name .gitmodules -exec sed -i 's/ssh:\/\/git@github.com\//https:\/\/github.com\//g' {} +
+          
           git submodule sync --recursive
           git submodule update --init --recursive
 
